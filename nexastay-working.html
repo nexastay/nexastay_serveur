@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaStay - Éditeur de Livret d'Accueil</title>
+    <style>
+        :root {
+            --primary-dark: #1a202c;
+            --secondary-dark: #2d3748;
+            --accent-blue: #3182ce;
+            --accent-gold: #d69e2e;
+            --white: #ffffff;
+            --light-gray: #f7fafc;
+            --success-green: #38a169;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--light-gray); 
+            color: var(--primary-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background: var(--white);
+            box-shadow: var(--shadow);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            text-decoration: none;
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            color: var(--secondary-dark);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .sidebar-nav a:hover {
+            background-color: #e2e8f0;
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1rem;
+        }
+        .sidebar-footer a.active {
+            background-color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .header { 
+            background: var(--white);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary { background: var(--accent-blue); color: var(--white); }
+        .btn-secondary { background: #e2e8f0; color: var(--primary-dark); }
+
+        .container { padding: 2rem; }
+        .card { background: var(--white); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 2rem; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .section-header h3 { font-size: 1.2rem; }
+        .editable-content {
+            background: #fdfdff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 80px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .editable-content.edit-mode {
+            border: 1px dashed #cbd5e0;
+            background: #fefefe;
+        }
+        .editable-content.edit-mode:focus {
+            border-style: solid;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+        .editable-content.read-only {
+            background: #f9f9f9;
+            border: 1px solid #e2e8f0;
+            cursor: default;
+        }
+        .btn-success { background: var(--success-green); color: var(--white); }
+        .btn-warning { background: #f56565; color: var(--white); }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="/" class="logo">NexaStay</a>
+        <nav class="sidebar-nav">
+            <a href="proprietaire.html">📊 Tableau de bord</a>
+            <a href="#">📅 Calendrier</a>
+            <a href="#">✉️ Messages</a>
+            <a href="#">🏠 Annonces</a>
+        </nav>
+        <div class="sidebar-footer">
+             <a href="index.html" class="active">📖 Livret d'accueil</a>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="header">
+            <h1 id="pageTitle">Livret d'Accueil</h1>
+            <div id="headerButtons">
+                <button class="btn btn-secondary" id="editBtn" onclick="toggleEditMode()">✏️ Modifier</button>
+                <button class="btn btn-primary" id="confirmBtn" onclick="confirmChanges()" style="display: none; margin-left: 0.5rem;">✓ Confirmer</button>
+                <button class="btn btn-secondary" id="cancelBtn" onclick="cancelChanges()" style="display: none; margin-left: 0.5rem;">Annuler</button>
+                <button class="btn btn-secondary" onclick="previewWelcomeBook()" style="margin-left: 0.5rem;">👁️ Aperçu</button>
+            </div>
+        </header>
+        
+        <main class="container">
+            <div class="card">
+                <div class="section-header">
+                    <h3>👋 Message de Bienvenue</h3>
+                </div>
+                <div class="editable-content read-only" contenteditable="false" id="welcome-message">
+                    Bienvenue dans notre magnifique propriété ! Nous sommes ravis de vous accueillir et espérons que votre séjour sera inoubliable.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <h3>🏠 Informations Pratiques</h3>
+                </div>
+                <div class="info-grid">
+                    <div class="editable-content read-only" contenteditable="false" id="wifi-info">
+                        <strong>WiFi:</strong> NexaStay_Guest<br>
+                        <strong>Mot de passe:</strong> Welcome2024!
+                    </div>
+                    <div class="editable-content read-only" contenteditable="false" id="checkin-info">
+                        <strong>Check-in:</strong> 15h00 - 20h00<br>
+                        <strong>Check-out:</strong> avant 11h00
+                    </div>
+                    <div class="editable-content read-only" contenteditable="false" id="emergency-info">
+                        <strong>Contact Urgence:</strong><br>
+                        Marie Blanchard (+33 6 12 34 56 78)
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <h3>📋 Règles de la Maison</h3>
+                </div>
+                <div class="editable-content read-only" contenteditable="false" id="house-rules">
+                    <ul>
+                        <li><strong>Non-fumeur</strong> à l'intérieur.</li>
+                        <li><strong>Animaux acceptés</strong> sur demande.</li>
+                        <li>Merci de respecter le calme après <strong>22h00</strong>.</li>
+                        <li>Les <strong>fêtes</strong> ne sont pas autorisées.</li>
+                    </ul>
+                </div>
+            </div>
+            
+             <div class="card">
+                <div class="section-header">
+                    <h3>🌟 Nos Recommandations Locales</h3>
+                </div>
+                <div class="editable-content read-only" contenteditable="false" id="recommendations">
+                   <strong>Restaurants:</strong><br>
+                   <ul>
+                        <li>La Petite Maison (Cuisine méditerranéenne)</li>
+                        <li>Chez Pipo (Socca traditionnelle)</li>
+                   </ul>
+                   <br>
+                   <strong>À visiter:</strong><br>
+                   <ul>
+                        <li>Le Musée Matisse</li>
+                        <li>La Vieille Ville et son marché aux fleurs</li>
+                   </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        let isEditMode = false;
+        let originalContent = {};
+        
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const editableElements = document.querySelectorAll('.editable-content');
+            const editBtn = document.getElementById('editBtn');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const pageTitle = document.getElementById('pageTitle');
+            
+            if (isEditMode) {
+                // Sauvegarder le contenu original
+                editableElements.forEach(element => {
+                    originalContent[element.id] = element.innerHTML;
+                });
+                
+                // Passer en mode édition
+                editableElements.forEach(element => {
+                    element.contentEditable = 'true';
+                    element.classList.remove('read-only');
+                    element.classList.add('edit-mode');
+                });
+                
+                editBtn.style.display = 'none';
+                confirmBtn.style.display = 'inline-block';
+                cancelBtn.style.display = 'inline-block';
+                pageTitle.textContent = 'Éditeur du Livret d\'Accueil';
+            } else {
+                // Revenir en mode lecture
+                editableElements.forEach(element => {
+                    element.contentEditable = 'false';
+                    element.classList.remove('edit-mode');
+                    element.classList.add('read-only');
+                });
+                
+                editBtn.style.display = 'inline-block';
+                confirmBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                pageTitle.textContent = 'Livret d\'Accueil';
+            }
+        }
+        
+        function confirmChanges() {
+            // Sauvegarder les modifications
+            const editableElements = document.querySelectorAll('.editable-content');
+            const changes = {};
+            
+            editableElements.forEach(element => {
+                changes[element.id] = element.innerHTML;
+            });
+            
+            // Ici on enverrait les données au serveur
+            console.log('Modifications sauvegardées:', changes);
+            
+            // Sortir du mode édition
+            isEditMode = false;
+            toggleEditMode();
+            
+            // Confirmation visuelle
+            alert('✅ Modifications sauvegardées avec succès !');
+        }
+        
+        function cancelChanges() {
+            // Restaurer le contenu original
+            const editableElements = document.querySelectorAll('.editable-content');
+            
+            editableElements.forEach(element => {
+                if (originalContent[element.id]) {
+                    element.innerHTML = originalContent[element.id];
+                }
+            });
+            
+            // Sortir du mode édition
+            isEditMode = false;
+            toggleEditMode();
+        }
+
+        function previewWelcomeBook() {
+            const newWindow = window.open('', '_blank');
+            const welcomeMessage = document.getElementById('welcome-message').innerHTML;
+            const wifiInfo = document.getElementById('wifi-info').innerHTML;
+            const checkinInfo = document.getElementById('checkin-info').innerHTML;
+            const emergencyInfo = document.getElementById('emergency-info').innerHTML;
+            const houseRules = document.getElementById('house-rules').innerHTML;
+            const recommendations = document.getElementById('recommendations').innerHTML;
+            
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Aperçu du Livret d'Accueil</title>
+                        <style>
+                            body { font-family: 'Inter', sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; }
+                            .section { margin-bottom: 2rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; }
+                            h1 { color: #1a202c; }
+                            h2 { color: #2d3748; font-size: 1.2rem; margin-bottom: 1rem; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>🏠 Livret d'Accueil NexaStay</h1>
+                        <div class="section">
+                            <h2>👋 Message de Bienvenue</h2>
+                            ${welcomeMessage}
+                        </div>
+                        <div class="section">
+                            <h2>🏠 Informations Pratiques</h2>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                <div>${wifiInfo}</div>
+                                <div>${checkinInfo}</div>
+                                <div>${emergencyInfo}</div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <h2>📋 Règles de la Maison</h2>
+                            ${houseRules}
+                        </div>
+                        <div class="section">
+                            <h2>🌟 Nos Recommandations</h2>
+                            ${recommendations}
+                        </div>
+                    </body>
+                </html>
+            `);
+        }
+    </script>
+</body>
+</html>

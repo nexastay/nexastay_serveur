@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaStay - Pré-inscription Fondateurs</title>
+    <style>
+        :root {
+            --primary-dark: #1a202c;
+            --secondary-dark: #2d3748;
+            --accent-purple: #5a32d2;
+            --accent-blue: #3182ce;
+            --accent-gold: #d69e2e;
+            --white: #ffffff;
+            --light-gray: #f7fafc;
+            --success-green: #38a169;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--light-gray); 
+            color: var(--primary-dark);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--secondary-dark);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        .card {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+        .features-card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features-card li {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .features-card li::before {
+            content: '🤖';
+            font-size: 1.5rem;
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+        .form-group input {
+            width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0;
+            border-radius: 8px; font-size: 1rem;
+        }
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: var(--accent-gold);
+            color: var(--primary-dark);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+        .stats-section {
+            margin-top: 3rem;
+            text-align: center;
+        }
+        .counter-container {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: var(--shadow);
+        }
+        .counter {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--accent-purple);
+            line-height: 1;
+        }
+        .counter-label {
+            font-size: 1.2rem;
+            color: var(--secondary-dark);
+            margin-top: 0.5rem;
+        }
+        .geo-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .geo-stats-card h3 {
+            margin-bottom: 1rem;
+        }
+        .geo-stats-list {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+        .geo-stats-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .geo-stats-list li:last-child {
+            border-bottom: none;
+        }
+        .geo-stats-list .count {
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid, .geo-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="#" class="logo">NexaStay</a>
+            <h1>La Technologie qui Révolutionne la Gestion Locative est Bientôt Là.</h1>
+            <p class="subtitle">Arrêtez de jongler avec 5 outils différents. Pré-inscrivez-vous et soyez le premier à accéder à la plateforme tout-en-un qui automatise vos tâches et maximise vos revenus grâce à l'IA.</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="card features-card">
+                <h2>Une seule plateforme. Zéro effort.</h2>
+                <p style="margin-bottom: 2rem;">NexaStay Pro remplace tous vos abonnements actuels :</p>
+                <ul>
+                    <li><strong>Tarification Dynamique par IA</strong> pour toujours louer au meilleur prix.</li>
+                    <li><strong>Automatisation des Messages</strong> pour une communication 5 étoiles avec vos voyageurs.</li>
+                    <li><strong>Création d'Annonce par IA</strong> pour des descriptions qui convertissent.</li>
+                    <li><strong>Gestionnaire de Tâches intelligent</strong> pour ne plus jamais oublier un nettoyage.</li>
+                    <li><strong>Sécurité des Cautions renforcée</strong> pour une tranquillité d'esprit totale.</li>
+                </ul>
+            </div>
+            <div class="card registration-form">
+                <h2>Réservez votre Accès Fondateur</h2>
+                <form id="preinscriptionForm">
+                    <div class="form-group">
+                        <label for="name">Nom complet</label>
+                        <input type="text" id="name" required placeholder="Ex: Jean Dupont">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Adresse email</label>
+                        <input type="email" id="email" required placeholder="jean.dupont@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">Ville de votre propriété principale</label>
+                        <input type="text" id="city" required placeholder="Ex: Nice">
+                    </div>
+                    <div class="form-group">
+                        <label for="region">Région</label>
+                        <input type="text" id="region" required placeholder="Ex: Provence-Alpes-Côte d'Azur">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Je réserve mes 3 mois gratuits</button>
+                </form>
+            </div>
+        </div>
+
+        <section class="stats-section">
+            <div class="counter-container">
+                <div id="counter" class="counter">0</div>
+                <div class="counter-label">Propriétés Pré-inscrites</div>
+            </div>
+            <div class="geo-stats">
+                <div class="card">
+                    <h3>Top 5 Régions</h3>
+                    <ul class="geo-stats-list" id="region-stats">
+                        <li><span>Chargement...</span> <span class="count"></span></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Top 5 Villes</h3>
+                    <ul class="geo-stats-list" id="city-stats">
+                        <li><span>Chargement...</span> <span class="count"></span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('preinscriptionForm');
+            const counterElement = document.getElementById('counter');
+            const regionStatsList = document.getElementById('region-stats');
+            const cityStatsList = document.getElementById('city-stats');
+            
+            // URL de votre serveur déployé sur Render
+            const apiUrl = 'https://nexastay-serveur.onrender.com'; 
+
+            /**
+             * Met à jour l'interface avec les dernières statistiques du serveur
+             */
+            async function updateUI() {
+                try {
+                    const response = await fetch(`${apiUrl}/stats/pre-registrations`);
+
+                    const contentType = response.headers.get("content-type");
+                    if (!response.ok) {
+                        throw new Error(`Erreur du serveur. Statut: ${response.status}.`);
+                    }
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error(`Réponse invalide du serveur. Le format attendu est JSON, mais nous avons reçu ${contentType}.`);
+                    }
+
+                    const stats = await response.json();
+
+                    counterElement.textContent = stats.total;
+                    renderTopList(regionStatsList, stats.topRegions);
+                    renderTopList(cityStatsList, stats.topCities);
+
+                } catch (error) {
+                    console.error("Erreur lors de la récupération des stats:", error);
+                    counterElement.textContent = "N/A";
+                    regionStatsList.innerHTML = '<li><span>Erreur de chargement</span></li>';
+                    cityStatsList.innerHTML = '<li><span>Erreur de chargement</span></li>';
+                }
+            }
+
+            /**
+             * Affiche une liste de "Top 5" dans l'élément UL fourni
+             */
+            function renderTopList(listElement, counts) {
+                const sorted = Object.entries(counts);
+                listElement.innerHTML = '';
+                if (sorted.length === 0) {
+                    listElement.innerHTML = '<li><span>Aucune donnée</span> <span class="count"></span></li>';
+                    return;
+                }
+                sorted.forEach(([name, count]) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${name}</span> <span class="count">${count}</span>`;
+                    listElement.appendChild(li);
+                });
+            }
+
+            /**
+             * Gère la soumission du formulaire
+             */
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const newEntry = {
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    city: document.getElementById('city').value,
+                    region: document.getElementById('region').value,
+                };
+
+                try {
+                    const response = await fetch(`${apiUrl}/pre-register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newEntry)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorMessage;
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            errorMessage = errorJson.error || errorText;
+                        } catch (parseError) {
+                            errorMessage = errorText;
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    const result = await response.json();
+                    
+                    await updateUI();
+
+                    alert('Merci ! Votre pré-inscription a bien été enregistrée. Nous vous contacterons très prochainement.');
+                    form.reset();
+
+                } catch (error) {
+                    console.error("Erreur lors de la soumission:", error);
+                    alert(`Erreur : ${error.message}`);
+                }
+            });
+
+            // Initialiser l'UI au chargement de la page
+            updateUI();
+        });
+    </script>
+</body>
+</html>

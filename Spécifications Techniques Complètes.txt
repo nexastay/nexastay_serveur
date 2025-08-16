@@ -1,0 +1,207 @@
+Spécifications Techniques Complètes : Les Trois B Digital
+Introduction
+Ce document constitue le cahier des charges technique détaillé pour le développement de la plateforme "Les Trois B Digital". Il traduit la vision stratégique en une série de fonctionnalités, d'écrans et d'exigences techniques concrets, destinés à guider l'équipe de développement.
+
+Partie 1 : Architecture Générale & Technologies
+1.1 Architecture
+Type : Microservices. Chaque pilier fonctionnel (Utilisateurs, Réservations, Tarification, Messagerie, Tâches, etc.) sera un service indépendant.
+
+Communication : Les services communiqueront via des API RESTful et des courtiers de messages (comme RabbitMQ ou Kafka) pour les événements asynchrones (ex: nouvelle réservation).
+
+Infrastructure : Déploiement sur une plateforme Cloud (AWS, Google Cloud ou Azure) utilisant des conteneurs (Docker, Kubernetes) pour la scalabilité et la résilience.
+
+1.2 Stack Technologique Proposée
+Frontend (Web) : React.js ou Vue.js avec un framework UI comme Tailwind CSS pour un design moderne et responsive.
+
+Frontend (Mobile) : React Native pour développer les applications iOS et Android à partir d'une seule base de code.
+
+Backend : Node.js (avec TypeScript) pour les services liés à l'API et à la communication en temps réel (WebSocket). Python pour les services d'IA et d'analyse de données.
+
+Base de Données :
+
+PostgreSQL pour les données relationnelles structurées (utilisateurs, propriétés, réservations).
+
+MongoDB ou DynamoDB pour les données non structurées (messages, logs).
+
+Redis pour la mise en cache.
+
+Moteur de Recherche : Elasticsearch pour alimenter la recherche de propriétés rapide et complexe.
+
+IA & Machine Learning : Python avec des bibliothèques comme TensorFlow, PyTorch, Scikit-learn, et des services d'IA Cloud (ex: Google AI Platform, AWS SageMaker).
+
+Partie 2 : Interface Voyageur (La "Vitrine")
+2.1 Parcours Utilisateur Clé
+Un nouveau visiteur arrive sur la page d'accueil.
+
+Il utilise la barre de recherche pour trouver des logements dans une ville pour des dates spécifiques.
+
+Il parcourt la page de résultats, utilise les filtres et clique sur une propriété qui l'intéresse.
+
+Il consulte la page de la propriété, regarde les photos, lit la description et les avis.
+
+Il clique sur "Réserver", vérifie le prix, et procède au paiement.
+
+Il reçoit une confirmation et peut consulter sa réservation dans son espace personnel.
+
+2.2 Détail des Écrans
+Écran 1 : Page d'Accueil
+Composants :
+
+Header : Logo, liens de navigation ("Explorer", "Devenir hôte"), boutons "Connexion" et "Inscription".
+
+Hero Section : Titre accrocheur, barre de recherche principale (Destination, Dates, Nombre de voyageurs).
+
+Grille de "Propriétés en vedette" : Cartes de propriétés sélectionnées avec photo, titre, prix/nuit.
+
+Section "Destinations populaires" : Cartes cliquables de villes ou régions.
+
+Footer : Liens utiles, informations légales, réseaux sociaux.
+
+Écran 2 : Page de Résultats de Recherche
+Composants :
+
+Header avec la barre de recherche pré-remplie et modifiable.
+
+Panneau de filtres : Prix (slider), Type de propriété (cases à cocher), Équipements (cases à cocher), etc.
+
+Carte interactive (type Google Maps/Mapbox) affichant des marqueurs de prix pour chaque propriété. Survoler un marqueur affiche une mini-carte de la propriété.
+
+Grille de résultats à gauche : Liste de cartes de propriétés, chacune avec un carrousel de photos, titre, capacité, note moyenne, prix total pour le séjour.
+
+Pagination en bas de la grille.
+
+Écran 3 : Page de Détail de Propriété
+Composants :
+
+Galerie d'images/vidéos en tête de page.
+
+Colonne principale (gauche) :
+
+Titre, note, localisation.
+
+Infos sur l'hôte (photo, nom).
+
+Description longue et détaillée.
+
+Liste complète des équipements (avec icônes).
+
+Section des avis (avec notes détaillées : propreté, communication, etc.).
+
+Colonne de réservation (droite, "sticky") :
+
+Prix par nuit.
+
+Calendrier interactif montrant les disponibilités.
+
+Sélecteurs de dates et de nombre de voyageurs.
+
+Décomposition du prix (Nuits x Prix + Frais de ménage + Taxes = Total).
+
+Bouton "Réserver".
+
+Écran 4 : Tunnel de Réservation (Multi-étapes)
+Étape 1 : Vérification : Rappel du séjour, règles de la maison à accepter, résumé du prix.
+
+Étape 2 : Paiement : Formulaire sécurisé pour carte de crédit (intégration Stripe/PayPal).
+
+Étape 3 : Confirmation : Message de succès, numéro de réservation, et lien vers l'espace voyageur.
+
+Écran 5 : Espace Voyageur (Tableau de Bord)
+Navigation latérale :
+
+Mes Séjours : Liste des réservations à venir et passées. Cliquer sur une réservation affiche tous les détails (adresse, instructions, facture).
+
+Messagerie : Interface de chat pour communiquer avec les hôtes.
+
+Mon Profil : Modifier les informations personnelles, la photo, les préférences.
+
+Mes Avis : Voir les avis laissés et laisser un avis pour un séjour terminé.
+
+Partie 3 : Interface Propriétaire/Gestionnaire (Le "Cockpit")
+3.1 Détail des Écrans
+Écran 1 : Tableau de Bord Principal
+Composants :
+
+Widgets de KPIs clés : Taux d'occupation (%), ADR, RevPAR, Revenu du mois.
+
+Calendrier compact des 7 prochains jours avec les arrivées et départs.
+
+Liste des tâches urgentes (ex: "Nettoyage pour la réservation #123").
+
+Aperçu des derniers messages non lus.
+
+Alertes de l'IA "PriceMind" (ex: "Suggestion de prix pour le 15/12").
+
+Écran 2 : Calendrier Unifié
+Composants :
+
+Vue calendaire (type Google Calendar) affichant les réservations de toutes les propriétés.
+
+Code couleur par propriété ou par statut (Confirmé, En attente).
+
+Possibilité de cliquer sur une réservation pour ouvrir une modale avec les détails et les actions rapides (contacter le client, annuler).
+
+Possibilité de bloquer manuellement des dates.
+
+Écran 3 : Gestion des Annonces
+Composants :
+
+Liste des propriétés gérées.
+
+Formulaire de création/édition d'annonce complet, organisé par onglets :
+
+Infos de base : Titre, description, type de propriété.
+
+Photos/Vidéos : Uploader et organiser les médias.
+
+Prix : Définir le prix de base, les frais de ménage.
+
+Disponibilité : Synchroniser avec les canaux externes (Channel Manager).
+
+Règles : Durée de séjour min/max, politique d'annulation.
+
+Écran 4 : Boîte de Réception (GuestFlow)
+Composants :
+
+Interface à 3 colonnes : Liste des conversations, conversation active, détails du client et de sa réservation.
+
+Indicateur du canal d'origine du message (Airbnb, Email, SMS...).
+
+Champ de réponse avec possibilité d'utiliser des modèles de messages ("smart tags").
+
+Panneau de configuration pour créer les séquences de messages automatisées.
+
+Partie 4 : Interface Intervenant (La "Boîte à Outils")
+4.1 Conception Mobile-First
+L'interface doit être conçue comme une Progressive Web App (PWA) ou une application native simple et directe.
+
+4.2 Détail des Écrans
+Écran 1 : Tableau de Bord des Tâches
+Composants :
+
+Vue par onglets : "Aujourd'hui", "À Venir".
+
+Liste de cartes de tâches, chacune indiquant : type de tâche (Nettoyage/Maintenance), nom de la propriété, adresse, heure limite.
+
+Écran 2 : Détail de Tâche
+Composants :
+
+Informations complètes sur la tâche.
+
+Bouton pour ouvrir la localisation dans une application de cartographie.
+
+Checklist interactive des points à vérifier/faire.
+
+Boutons "Démarrer la tâche" et "Terminer la tâche".
+
+Fonction pour prendre une photo et l'ajouter comme preuve ou pour signaler un problème, avec un champ de commentaire.
+
+Partie 5 : Le Cerveau IA "Les Trois B"
+5.1 Exigences Techniques
+Tarification : Le service doit agréger des données via des API (météo, événements) et du web scraping (prix des concurrents). Il utilisera un modèle de régression (ex: XGBoost) pour prédire la demande et suggérer un prix optimal.
+
+Communication : Le service utilisera un modèle de NLP (type BERT) pour analyser les messages entrants, classifier l'intention (question sur le Wi-Fi, demande de départ tardif, etc.) et générer une réponse appropriée ou une suggestion de réponse.
+
+Optimisation d'annonce : Le service utilisera des modèles de vision par ordinateur (Computer Vision) pour analyser la qualité des photos (luminosité, composition) et des modèles de NLP pour analyser et suggérer des améliorations pour les titres et descriptions.
+
+Ce document servira de référence unique pour le développement. Chaque partie peut être décomposée en "user stories" et en "tâches" dans un outil de gestion de projet comme Jira.

@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===================
+// MODÈLES PRINCIPAUX
+// ===================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(GUEST)
+  createdAt DateTime @default(now())
+
+  stripeAccountId String? @unique
+
+  properties      Property[]
+  bookingsAsGuest Booking[]
+  reviews         Review[]
+}
+
+model Property {
+  id          String   @id @default(uuid())
+  title       String
+  location    String
+  price       Decimal
+  image       String?
+  description String?  @db.Text
+  photos      String[]
+
+  createdAt DateTime @default(now())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+
+  bookings Booking[]
+  extras   Extra[]
+  reviews  Review[]
+}
+
+model Booking {
+  id                String        @id @default(uuid())
+  checkInDate       DateTime
+  checkOutDate      DateTime
+  totalAmount       Decimal
+  status            BookingStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  numberOfTravelers Int           @default(1)
+  hasPets           Boolean       @default(false)
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  guestId String
+  guest   User     @relation(fields: [guestId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  authorId String
+  author   User     @relation(fields: [authorId], references: [id])
+}
+
+model Extra {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  price       Decimal
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id])
+}
+
+// MODÈLE RESTAURÉ POUR LA PRÉ-INSCRIPTION
+model PreRegistration {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  city      String
+  region    String
+  createdAt DateTime @default(now())
+}
+
+// ENUMS
+enum Role {
+  GUEST
+  HOST
+  INTERVENANT
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}

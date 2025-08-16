@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaStay Pro - Dashboard Propriétaire</title>
+    <style>
+        :root {
+            --primary-dark: #1a202c; --secondary-dark: #2d3748; --accent-purple: #5a32d2;
+            --accent-blue: #3182ce; --accent-gold: #d69e2e; --white: #ffffff;
+            --light-gray: #f7fafc; --success-green: #38a169; --warning-orange: #dd6b20;
+            --danger-red: #e53e3e; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --prop1-color: #2b6cb0; --prop2-color: #276749; --prop3-color: #b83280;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--light-gray); color: var(--primary-dark); display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 250px; background: var(--white); box-shadow: var(--shadow); padding: 1.5rem 1rem; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar .logo { font-size: 1.8rem; font-weight: 800; color: var(--primary-dark); text-decoration: none; margin-bottom: 2.5rem; text-align: center; }
+        .sidebar-nav a { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; color: var(--secondary-dark); text-decoration: none; border-radius: 8px; margin-bottom: 0.5rem; font-weight: 500; }
+        .sidebar-nav a.active { background-color: var(--accent-purple); color: var(--white); }
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .header { background: var(--white); display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; border-bottom: 1px solid #e2e8f0; }
+        .header-right { display: flex; align-items: center; gap: 1rem; }
+        .profile-menu { position: relative; }
+        .profile-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--secondary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 600; cursor: pointer; }
+        .profile-dropdown { display: none; position: absolute; top: 55px; right: 0; background: var(--white); border-radius: 8px; box-shadow: var(--shadow); width: 220px; overflow: hidden; z-index: 1001; }
+        .profile-dropdown.show { display: block; }
+        .container { padding: 2rem; overflow-y: auto; flex: 1; }
+        .card { background: var(--white); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .metric { font-size: 2.5rem; font-weight: 700; color: var(--accent-blue); }
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-primary { background: var(--accent-blue); color: var(--white); }
+        .btn-switch-mode { background-color: var(--accent-gold); color: white; }
+        .calendar-container { display: flex; flex-wrap: wrap; gap: 2rem; }
+        .calendar { flex: 3; min-width: 400px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar-day-name { text-align: center; font-weight: 600; font-size: 0.875rem; color: #718096; padding-bottom: 0.5rem; }
+        .calendar-day { border: 1px solid #e2e8f0; border-radius: 6px; min-height: 100px; padding: 0.5rem; font-size: 0.875rem; font-weight: 500; background-color: var(--white); }
+        .booking-bar { font-size: 0.75rem; color: var(--white); padding: 2px 8px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; height: 22px; line-height: 18px; border-radius: 4px; }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .legend-color { width: 16px; height: 16px; border-radius: 4px; }
+        .messaging-container { display: flex; height: 600px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+        .conversation-list { width: 300px; border-right: 1px solid #e2e8f0; overflow-y: auto; background: var(--light-gray); }
+        .conversation { display: flex; gap: 1rem; padding: 1rem; cursor: pointer; border-bottom: 1px solid #e2e8f0; }
+        .conversation.active { background-color: var(--accent-blue); color: var(--white); }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background-color: var(--secondary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
+        .conversation-details { flex-grow: 1; overflow: hidden; }
+        .conversation-details p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-window { flex: 1; display: flex; flex-direction: column; }
+        .chat-header { padding: 1rem; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+        .chat-messages { flex: 1; padding: 1rem; overflow-y: auto; }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #e2e8f0; }
+        .chat-input input { flex: 1; border: 1px solid #cbd5e0; border-radius: 8px; padding: 0.75rem; }
+        .chat-input button { background: var(--accent-blue); color: var(--white); border: none; border-radius: 8px; padding: 0 1.5rem; margin-left: 0.5rem; cursor: pointer; }
+        .listing-card { display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .listing-image { width: 150px; height: 100px; border-radius: 8px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-gold)); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; flex-shrink: 0; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: var(--white); box-shadow: var(--shadow); }
+        .task-status { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .status-todo { background-color: #fed7d7; color: #c53030; }
+        .status-done { background-color: #c6f6d5; color: #22543d; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+        .table th, .table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .payout-amount { color: var(--success-green); font-weight: 600; }
+        .overview-list-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0; }
+        .overview-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;}
+        .overview-arrival { background-color: #ebf8ff; color: #3182ce; }
+        .overview-departure { background-color: #fff5f5; color: #e53e3e; }
+        .overview-message-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 1rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: var(--white); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; }
+        .perf-chart-container { height: 250px; display: flex; align-items: flex-end; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-top: 1.5rem; }
+        .perf-chart-bar { flex: 1; background-color: var(--accent-blue); border-radius: 4px 4px 0 0; text-align: center; color: var(--white); font-size: 0.75rem; position: relative; }
+        .perf-chart-bar .label { position: absolute; bottom: -20px; width: 100%; text-align: center; color: var(--secondary-dark); }
+        .stock-item, .extra-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0; }
+        .stock-status { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .status-ok { background-color: #c6f6d5; color: #22543d; }
+        .status-low { background-color: #feebc8; color: #975a16; }
+        .status-critical { background-color: #fed7d7; color: #c53030; }
+        .boutique-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .boutique-card { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        .boutique-card-image { height: 150px; background: var(--secondary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+        .boutique-card-content { padding: 1rem; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="/" class="logo">NexaStay</a>
+        <nav class="sidebar-nav">
+            <a href="#" class="active" onclick="showSection('dashboard', event)">📊 Tableau de bord</a>
+            <a href="ia.html">🤖 Dashboard IA</a>
+            <a href="#" onclick="showSection('calendrier', event)">📅 Calendrier</a>
+            <a href="#" onclick="showSection('messages', event)">✉️ Messages</a>
+            <a href="#" onclick="showSection('annonces', event)">🏠 Annonces</a>
+            <a href="#" onclick="showSection('taches', event)">✓ Tâches</a>
+            <a href="#" onclick="showSection('tarifs', event)">💲 Tarifs & Perf.</a>
+            <a href="#" onclick="showSection('finances', event)">📠 Finances</a>
+            <a href="#" onclick="showSection('stocks', event)">📦 Stocks</a>
+            <a href="#" onclick="showSection('boutique', event)">🛒 Boutique</a>
+        </nav>
+        <div class="sidebar-footer" style="border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+             <a href="nexastay-working.html" style="text-decoration: none;">📖 Livret d'accueil</a>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="header">
+            <h1 id="pageTitle">Tableau de bord</h1>
+            <div class="header-right">
+                <a href="voyageur.html" class="btn btn-switch-mode">✈️ Mode Voyageur</a>
+                <div class="profile-menu">
+                    <div class="profile-avatar" id="profileAvatar"></div>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="#">⚙️ Paramètres du compte</a>
+                        <a href="#" id="logoutButton">Déconnexion</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main class="container">
+            <div id="dashboard" class="content-section active">
+                <div class="grid">
+                    <div class="card"><h3>Revenus (30j)</h3><p class="metric" id="stats-revenue">Chargement...</p></div>
+                    <div class="card"><h3>Réservations</h3><p class="metric" id="stats-bookings">...</p></div>
+                    <div class="card"><h3>Taux d'occupation</h3><p class="metric" id="stats-occupancy">...%</p></div>
+                    <div class="card"><h3>Note moyenne</h3><p class="metric" id="stats-rating">...</p></div>
+                </div>
+                <div class="grid" style="margin-top: 2rem; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); align-items: start;">
+                    <div class="card"><h4>Prochains Mouvements</h4><div id="overview-mouvements"></div></div>
+                    <div class="card"><h4>Message Récent</h4><div id="overview-messages"></div></div>
+                    <div class="card"><h4>Tâches Prioritaires</h4><div id="overview-tasks"></div></div>
+                </div>
+            </div>
+            
+            <div id="calendrier" class="content-section">
+                <div class="calendar-container">
+                    <div class="card calendar">
+                        <div class="calendar-header">
+                            <h3 id="calendar-month-year"></h3>
+                            <div class="calendar-nav"><button id="prev-month">←</button><button id="next-month">→</button></div>
+                        </div>
+                        <div class="calendar-grid"><div class="calendar-day-name">Lun</div><div class="calendar-day-name">Mar</div><div class="calendar-day-name">Mer</div><div class="calendar-day-name">Jeu</div><div class="calendar-day-name">Ven</div><div class="calendar-day-name">Sam</div><div class="calendar-day-name">Dim</div></div>
+                        <div class="calendar-grid" id="calendar-grid"></div>
+                    </div>
+                    <div class="card calendar-details"><h4>Légende</h4><div id="calendar-legend"></div></div>
+                </div>
+            </div>
+
+            <div id="messages" class="content-section">
+                <div class="card messaging-container">
+                    <div class="conversation-list" id="conversation-list"></div>
+                    <div class="chat-window">
+                        <div class="chat-header" id="chat-header">Sélectionnez une conversation</div>
+                        <div class="chat-messages" id="chat-messages"></div>
+                        <div class="chat-input"><input type="text" placeholder="Répondre..." id="chat-input"><button id="send-message-btn">Envoyer</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="annonces" class="content-section">
+                 <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 id="listings-title">Vos Annonces</h3><button class="btn btn-primary" onclick="showSection('add-listing', event)">Créer une annonce</button>
+                    </div>
+                    <div id="listings-container"></div>
+                </div>
+            </div>
+
+            <div id="add-listing" class="content-section">
+                <!-- Le formulaire de création d'annonce sera ici -->
+            </div>
+
+            <div id="taches" class="content-section">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3>Gestion des Tâches</h3><button class="btn btn-primary" onclick="openAddTaskModal()">Ajouter une tâche</button>
+                    </div>
+                    <div id="tasks-list"></div>
+                </div>
+            </div>
+
+            <div id="tarifs" class="content-section">
+                <div class="card">
+                    <h3>Analyse des Performances (Revenus des 6 derniers mois)</h3>
+                    <div class="perf-chart-container" id="perf-chart-container"></div>
+                </div>
+            </div>
+
+            <div id="finances" class="content-section">
+                <div class="card">
+                    <h3>Connexion Stripe pour les Paiements & Cautions</h3>
+                    <p style="margin: 0.5rem 0 1.5rem; color: var(--secondary-dark);">Connectez votre compte Stripe pour recevoir les paiements de vos voyageurs et gérer les cautions de manière sécurisée.</p>
+                    <button class="btn btn-primary" onclick="connectStripe()">🚀 Se connecter à Stripe</button>
+                </div>
+                <div class="grid">
+                    <div class="card"><h3>Revenus du mois</h3><p class="metric" id="finance-revenue">0.00€</p></div>
+                    <div class="card"><h3>Charges (simulé)</h3><p class="metric">0.00€</p></div>
+                    <div class="card"><h3>Bénéfice net</h3><p class="metric" id="finance-profit">0.00€</p></div>
+                </div>
+            </div>
+
+            <div id="stocks" class="content-section">
+                <div class="card"><h3>Gestion des Stocks</h3><div id="stocks-container"></div></div>
+            </div>
+
+            <div id="boutique" class="content-section">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3>Boutique d'Extras pour Voyageurs</h3>
+                        <button class="btn btn-primary" onclick="openAddExtraModal()">Ajouter un Extra</button>
+                    </div>
+                    <div id="extras-container"></div>
+                </div>
+                <div class="card">
+                    <h3>Boutique Partenaire</h3>
+                    <p style="margin-bottom: 2rem;">Commandez vos équipements et fournitures.</p>
+                    <div class="boutique-grid" id="boutique-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="addExtraModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeAddExtraModal()">&times;</button>
+            <h3>Ajouter un Extra</h3>
+            <form id="add-extra-form">
+                <div class="form-group"><label for="extra-name">Nom de l'extra</label><input type="text" id="extra-name" required placeholder="Ex: Panier petit-déjeuner"></div>
+                <div class="form-group"><label for="extra-description">Description</label><textarea id="extra-description" required placeholder="Produits locaux, jus d'orange frais..."></textarea></div>
+                <div class="form-group"><label for="extra-price">Prix (€)</label><input type="number" id="extra-price" required placeholder="15.00" step="0.01"></div>
+                <div class="form-group"><label for="extra-property">Propriété</label><select id="extra-property" required></select></div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddExtraModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        const user = JSON.parse(localStorage.getItem('nexastay_user'));
+        const token = localStorage.getItem('nexastay_token');
+        if (!user || !token || (user.role !== 'HOST' && user.role !== 'host')) {
+            window.location.href = '/'; 
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const profileAvatar = document.getElementById('profileAvatar');
+            if (user.firstName && user.lastName) profileAvatar.textContent = `${user.firstName[0]}${user.lastName[0]}`;
+            profileAvatar.addEventListener('click', () => document.getElementById('profileDropdown').classList.toggle('show'));
+            document.getElementById('logoutButton').addEventListener('click', (e) => { e.preventDefault(); localStorage.clear(); window.location.href = '/'; });
+
+            loadAllData();
+
+            document.getElementById('add-extra-form')?.addEventListener('submit', handleAddExtra);
+        });
+        
+        function loadAllData() {
+            loadDashboardStats(); 
+            loadDashboardWidgets();
+            loadPerformanceData(); 
+            loadStockItems();
+            loadProducts();
+            loadExtras();
+            loadHostPropertiesForSelects();
+        }
+
+        function showSection(sectionId, event) {
+            if (event) event.preventDefault();
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId)?.classList.add('active');
+            document.querySelectorAll('.sidebar-nav a').forEach(l => l.classList.remove('active'));
+            document.querySelector(`.sidebar-nav a[onclick*="'${sectionId}'"]`)?.classList.add('active');
+            const titles = {'dashboard': 'Tableau de bord', 'tarifs': 'Tarifs & Perf.', 'stocks': 'Stocks', 'boutique': 'Boutique', 'calendrier': 'Calendrier', 'messages': 'Messages', 'annonces': 'Annonces', 'taches': 'Tâches', 'finances': 'Finances'};
+            document.getElementById('pageTitle').textContent = titles[sectionId] || 'NexaStay Pro';
+        }
+
+        async function apiFetch(endpoint, options = {}) {
+            const apiBaseUrl = 'http://localhost:3000/api';
+            options.headers = { ...options.headers, 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`};
+            const response = await fetch(`${apiBaseUrl}${endpoint}`, options);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erreur API');
+            }
+            if (response.headers.get("content-type")?.includes("application/json")) return response.json();
+        }
+
+        async function loadDashboardStats() {
+             try {
+                const stats = await apiFetch('/dashboard/stats');
+                document.getElementById('stats-revenue').textContent = `${stats.totalRevenue.toFixed(2)}€`;
+                document.getElementById('stats-bookings').textContent = stats.totalBookings;
+                document.getElementById('stats-occupancy').textContent = `${stats.averageOccupancy}%`;
+                document.getElementById('stats-rating').textContent = `${stats.averageRating} ⭐`;
+            } catch (error) {
+                console.error("Erreur de chargement des stats:", error);
+            }
+        }
+        
+        async function loadDashboardWidgets() { /* ... */ }
+        async function loadPerformanceData() { /* ... */ }
+        async function loadStockItems() { /* ... */ }
+        async function loadProducts() { /* ... */ }
+        async function createOrder(productId) { /* ... */ }
+
+        async function loadHostPropertiesForSelects() {
+            try {
+                const properties = await apiFetch('/dashboard/properties');
+                const selectExtra = document.getElementById('extra-property');
+                selectExtra.innerHTML = '<option value="">Sélectionner une propriété</option>';
+                properties.forEach(prop => {
+                    selectExtra.innerHTML += `<option value="${prop.id}">${prop.title}</option>`;
+                });
+            } catch (error) {
+                console.error("Erreur de chargement des propriétés pour les sélecteurs:", error);
+            }
+        }
+
+        async function loadExtras() {
+            try {
+                const extras = await apiFetch('/extras');
+                const container = document.getElementById('extras-container');
+                container.innerHTML = '';
+                if (extras.length === 0) {
+                    container.innerHTML = '<p>Vous n\'avez ajouté aucun extra pour vos voyageurs.</p>';
+                    return;
+                }
+                extras.forEach(extra => {
+                    container.innerHTML += `
+                        <div class="extra-item">
+                            <div>
+                                <h4>${extra.name} (${extra.property.title})</h4>
+                                <p>${extra.description}</p>
+                            </div>
+                            <strong>${extra.price}€</strong>
+                        </div>`;
+                });
+            } catch (error) {
+                document.getElementById('extras-container').innerHTML = '<p>Erreur de chargement des extras.</p>';
+            }
+        }
+
+        async function handleAddExtra(event) {
+            event.preventDefault();
+            const data = {
+                name: document.getElementById('extra-name').value,
+                description: document.getElementById('extra-description').value,
+                price: document.getElementById('extra-price').value,
+                propertyId: document.getElementById('extra-property').value,
+            };
+
+            try {
+                await apiFetch('/extras', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                alert('✅ Extra ajouté avec succès !');
+                closeAddExtraModal();
+                loadExtras();
+                event.target.reset();
+            } catch (error) {
+                alert(`❌ Erreur: ${error.message}`);
+            }
+        }
+
+        function openAddExtraModal() { document.getElementById('addExtraModal').classList.add('show'); }
+        function closeAddExtraModal() { document.getElementById('addExtraModal').classList.remove('show'); }
+    </script>
+</body>
+</html>

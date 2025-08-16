@@ -1,0 +1,618 @@
+// --- Importations des modules ---
+require('dotenv').config(); // Charge les variables d'environnement du fichier .env
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const path = require('path');
+const http = require('http');
+const multer = require('multer');
+const fs = require('fs');
+
+// --- NOUVEAU : Importation et initialisation de Prisma ---
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// --- Initialisation de l'application Express ---
+const app = express();
+const server = http.createServer(app);
+
+// --- Middlewares ---
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (HTML, CSS, JS)
+
+// --- Constantes ---
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error("ERREUR: La variable d'environnement JWT_SECRET n'est pas définie.");
+    process.exit(1);
+}
+
+// --- Middleware d'authentification (inchangé mais crucial) ---
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.sendStatus(401); // Non autorisé
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403); // Interdit
+        req.user = user;
+        next();
+    });
+};
+
+
+// ========================================
+// ---         ROUTES DE L'API          ---
+// ========================================
+
+// --- Authentification ---
+app.post('/api/auth/register', async (req, res) => {
+    const { email, password, firstName, lastName, role } = req.body;
+
+    if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ error: 'Tous les champs sont requis.' });
+    }
+
+    try {
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Cet email est déjà utilisé.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                firstName,
+                lastName,
+                role: role ? role.toUpperCase() : 'GUEST' // Assure que le rôle est en majuscules
+            }
+        });
+
+        const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '8h' });
+        const { password: _, ...userData } = newUser;
+        res.status(201).json({ user: userData, token });
+
+    } catch (error) {
+        console.error("Erreur d'inscription:", error);
+        res.status(500).json({ error: "Une erreur est survenue lors de l'inscription." });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (user && await bcrypt.compare(password, user.password)) {
+            const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
+            const { password: _, ...userData } = user;
+            res.json({ user: userData, token });
+        } else {
+            res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
+        }
+    } catch (error) {
+        console.error("Erreur de connexion:", error);
+        res.status(500).json({ error: "Une erreur est survenue." });
+    }
+});
+
+// --- Annonces (Properties) ---
+app.get('/api/properties', async (req, res) => {
+    try {
+        const properties = await prisma.property.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(properties);
+    } catch (error) {
+        res.status(500).json({ error: "Impossible de récupérer les annonces." });
+    }
+});
+
+app.post('/api/properties', authenticateToken, async (req, res) => {
+    // Seuls les HOSTS et ADMINS peuvent créer des annonces
+    if (req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: "Action non autorisée." });
+    }
+    
+    const { title, location, price, image, description, amenities, touristRegistrationNumber, insuranceProofUrl } = req.body;
+    
+    try {
+        const newProperty = await prisma.property.create({
+            data: {
+                title,
+                location,
+                price: parseFloat(price),
+                image,
+                touristRegistrationNumber,
+                insuranceProofUrl,
+                ownerId: req.user.id
+            }
+        });
+        res.status(201).json(newProperty);
+    } catch (error) {
+        console.error("Erreur création d'annonce:", error);
+        res.status(500).json({ error: "Impossible de créer l'annonce." });
+    }
+});
+
+// --- NOUVEAU : Réservations (Bookings) ---
+app.post('/api/bookings', authenticateToken, async (req, res) => {
+    // Seul un utilisateur connecté (GUEST ou autre) peut réserver
+    if (!req.user || !req.user.id) {
+        return res.status(403).json({ error: "Vous devez être connecté pour réserver." });
+    }
+
+    const { propertyId, checkInDate, checkOutDate } = req.body;
+    const guestId = req.user.id;
+
+    // 1. Valider les données reçues
+    if (!propertyId || !checkInDate || !checkOutDate) {
+        return res.status(400).json({ error: "Toutes les informations sont requises." });
+    }
+    
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+
+    if (checkIn >= checkOut) {
+        return res.status(400).json({ error: "La date de départ doit être après la date d'arrivée." });
+    }
+
+    try {
+        // 2. Vérifier que la propriété existe
+        const property = await prisma.property.findUnique({ where: { id: propertyId } });
+        if (!property) {
+            return res.status(404).json({ error: "La propriété demandée n'existe pas." });
+        }
+
+        // 3. Vérifier la disponibilité des dates
+        const overlappingBooking = await prisma.booking.findFirst({
+            where: {
+                propertyId: propertyId,
+                status: 'CONFIRMED', // On ne vérifie que les réservations déjà confirmées
+                AND: [
+                    { checkInDate: { lt: checkOut } },
+                    { checkOutDate: { gt: checkIn } }
+                ]
+            }
+        });
+
+        if (overlappingBooking) {
+            return res.status(409).json({ error: "Désolé, ces dates ne sont plus disponibles." });
+        }
+
+        // 4. Calculer le prix total
+        const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+        const totalAmount = nights * property.price;
+
+        // 5. Créer la réservation en base de données avec le statut PENDING
+        const newBooking = await prisma.booking.create({
+            data: {
+                checkInDate: checkIn,
+                checkOutDate: checkOut,
+                totalAmount: totalAmount,
+                propertyId: propertyId,
+                guestId: guestId
+                // Le statut par défaut est 'PENDING' grâce au schéma Prisma
+            }
+        });
+
+        // 6. Renvoyer la réservation créée
+        res.status(201).json(newBooking);
+
+    } catch (error) {
+        console.error("Erreur lors de la création de la réservation:", error);
+        res.status(500).json({ error: "Une erreur est survenue sur le serveur." });
+    }
+});
+
+
+// --- Dashboard Propriétaire ---
+app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'HOST') return res.sendStatus(403);
+
+    try {
+        // Récupère les IDs des propriétés de l'hôte
+        const hostProperties = await prisma.property.findMany({
+            where: { ownerId: req.user.id },
+            select: { id: true }
+        });
+        const hostPropertyIds = hostProperties.map(p => p.id);
+
+        // Calcule les stats basées sur les réservations confirmées
+        const confirmedBookings = await prisma.booking.findMany({
+            where: {
+                propertyId: { in: hostPropertyIds },
+                status: 'CONFIRMED'
+            }
+        });
+
+        const totalRevenue = confirmedBookings.reduce((sum, b) => sum + b.totalAmount, 0);
+        const totalBookings = confirmedBookings.length;
+        
+        // Pour le taux d'occupation et la note, il faudrait une logique plus complexe
+        // Pour l'instant, nous retournons des valeurs de démo pour ces champs
+        const stats = {
+            totalRevenue: totalRevenue,
+            totalBookings: totalBookings,
+            averageOccupancy: 89, // Valeur de démo
+            averageRating: 4.9    // Valeur de démo
+        };
+        res.json(stats);
+
+    } catch (error) {
+        console.error("Erreur stats dashboard:", error);
+        res.status(500).json({ error: "Impossible de charger les statistiques." });
+    }
+});
+
+app.get('/api/dashboard/properties', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'HOST') return res.sendStatus(403);
+    try {
+        const properties = await prisma.property.findMany({
+            where: { ownerId: req.user.id },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(properties);
+    } catch (error) {
+        res.status(500).json({ error: "Impossible de charger vos propriétés." });
+    }
+});
+
+// --- Utilisateurs (Users) ---
+
+// Route pour récupérer tous les utilisateurs avec le rôle INTERVENANT
+app.get('/api/users/intervenants', authenticateToken, async (req, res) => {
+    // On vérifie que celui qui demande est un Hôte
+    if (req.user.role !== 'HOST') {
+        return res.status(403).json({ error: "Action non autorisée." });
+    }
+    try {
+        const intervenants = await prisma.user.findMany({
+            where: { role: 'INTERVENANT' },
+            select: { id: true, firstName: true, lastName: true } // On ne renvoie que les infos utiles
+        });
+        res.json(intervenants);
+    } catch (error) {
+        res.status(500).json({ error: "Impossible de récupérer la liste des intervenants." });
+    }
+});
+
+// --- Tâches (Tasks) ---
+
+// Route pour créer une nouvelle tâche (seuls les HOSTS peuvent le faire)
+app.post('/api/tasks', authenticateToken, async (req, res) => {
+    // 1. On vérifie que l'utilisateur est bien un Hôte
+    if (req.user.role !== 'HOST') {
+        return res.status(403).json({ error: "Action non autorisée." });
+    }
+
+    // 2. On récupère les informations de la tâche depuis le frontend
+    const { title, description, dueDate, propertyId, assignedToId } = req.body;
+
+    try {
+        // 3. On utilise Prisma pour créer la tâche dans la base de données
+        const newTask = await prisma.task.create({
+            data: {
+                title,
+                description,
+                dueDate: dueDate ? new Date(dueDate) : null,
+                propertyId,
+                assignedToId,
+                createdById: req.user.id // L'ID de l'hôte qui crée la tâche
+            }
+        });
+        // 4. On renvoie la tâche nouvellement créée au frontend
+        res.status(201).json(newTask);
+    } catch (error) {
+        console.error("Erreur lors de la création de la tâche:", error);
+        res.status(500).json({ error: "Impossible de créer la tâche." });
+    }
+});
+
+// Route pour récupérer les tâches en fonction du rôle de l'utilisateur
+app.get('/api/tasks', authenticateToken, async (req, res) => {
+    try {
+        let tasks;
+        // Si l'utilisateur est un Hôte, on lui montre les tâches qu'il a créées
+        if (req.user.role === 'HOST') {
+            tasks = await prisma.task.findMany({
+                where: { createdById: req.user.id },
+                include: { property: true, assignedTo: true }, // Inclure les détails de la propriété et de l'intervenant
+                orderBy: { createdAt: 'desc' }
+            });
+        } 
+        // Si c'est un Intervenant, on lui montre les tâches qui lui sont assignées
+        else if (req.user.role === 'INTERVENANT') {
+            tasks = await prisma.task.findMany({
+                where: { assignedToId: req.user.id },
+                include: { property: true }, // Inclure les détails de la propriété
+                orderBy: { dueDate: 'asc' }
+            });
+        } else {
+            return res.status(403).json({ error: "Rôle non autorisé pour voir les tâches." });
+        }
+        res.json(tasks);
+    } catch (error) {
+        console.error("Erreur de récupération des tâches:", error);
+        res.status(500).json({ error: "Impossible de récupérer les tâches." });
+    }
+});
+
+// Route pour mettre à jour le statut d'une tâche
+app.put('/api/tasks/:id/status', authenticateToken, async (req, res) => {
+    // Seul un intervenant peut changer le statut d'une tâche qui lui est assignée
+    if (req.user.role !== 'INTERVENANT') {
+        return res.status(403).json({ error: "Action non autorisée." });
+    }
+
+    const { id } = req.params; // L'ID de la tâche vient de l'URL
+    const { status } = req.body; // Le nouveau statut (ex: "DONE") vient du frontend
+
+    try {
+        const updatedTask = await prisma.task.update({
+            where: { 
+                id: id,
+                assignedToId: req.user.id // Sécurité: on vérifie que la tâche appartient bien à cet intervenant
+            },
+            data: { status: status } // On met à jour le statut
+        });
+        res.json(updatedTask);
+    } catch (error) {
+        console.error("Erreur de mise à jour de la tâche:", error);
+        res.status(500).json({ error: "Impossible de mettre à jour la tâche." });
+    }
+});
+
+
+// --- IA (endpoints fonctionnels) ---
+app.get('/api/ai/analytics', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'HOST') return res.sendStatus(403);
+    
+    try {
+        const hostProperties = await prisma.property.findMany({
+            where: { ownerId: req.user.id },
+            include: { bookings: true }
+        });
+        
+        const totalBookings = hostProperties.reduce((sum, prop) => sum + prop.bookings.length, 0);
+        const totalRevenue = hostProperties.reduce((sum, prop) => 
+            sum + prop.bookings.reduce((bookingSum, booking) => bookingSum + booking.totalAmount, 0), 0
+        );
+        
+        // Calculs IA prédictifs basés sur les données réelles
+        const predictedRevenue = Math.round(totalRevenue * 1.15); // +15% prédiction
+        const predictedOccupancy = Math.min(95, Math.round((totalBookings / hostProperties.length) * 12)); // Estimation mensuelle
+        const performanceScore = Math.min(10, Math.round((totalRevenue / 1000) + 7)); // Score basé sur revenus
+        
+        res.json({
+            predictedRevenue,
+            predictedOccupancy,
+            performanceScore,
+            activeOptimizations: Math.floor(Math.random() * 15) + 5,
+            totalProperties: hostProperties.length,
+            totalBookings,
+            actualRevenue: totalRevenue
+        });
+    } catch (error) {
+        console.error('Erreur analytics IA:', error);
+        res.status(500).json({ error: 'Erreur lors du calcul des analytics IA' });
+    }
+});
+
+app.get('/api/ai/pricing-optimization', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'HOST') return res.sendStatus(403);
+    
+    try {
+        const properties = await prisma.property.findMany({
+            where: { ownerId: req.user.id },
+            include: { bookings: { where: { status: 'CONFIRMED' } } }
+        });
+        
+        const optimizations = properties.map(property => {
+            const avgBookingValue = property.bookings.length > 0 
+                ? property.bookings.reduce((sum, b) => sum + b.totalAmount, 0) / property.bookings.length
+                : property.price;
+            
+            const suggestedPrice = Math.round(avgBookingValue * (1 + (Math.random() * 0.2 - 0.1))); // ±10%
+            const potentialIncrease = ((suggestedPrice - property.price) / property.price * 100).toFixed(1);
+            
+            return {
+                propertyId: property.id,
+                propertyTitle: property.title,
+                currentPrice: property.price,
+                suggestedPrice,
+                potentialIncrease: `${potentialIncrease}%`,
+                confidence: Math.round(Math.random() * 30 + 70), // 70-100%
+                reasoning: potentialIncrease > 0 ? 'Demande élevée détectée' : 'Optimisation concurrentielle'
+            };
+        });
+        
+        res.json({ optimizations });
+    } catch (error) {
+        console.error('Erreur optimisation prix:', error);
+        res.status(500).json({ error: "Erreur lors de l'optimisation des prix" });
+    }
+});
+
+app.get('/api/ai/market-analysis', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'HOST') return res.sendStatus(403);
+    
+    try {
+        // Analyse de marché simulée mais basée sur des données réelles
+        const allProperties = await prisma.property.findMany({
+            include: { bookings: { where: { status: 'CONFIRMED' } } }
+        });
+        
+        const marketAvgPrice = allProperties.reduce((sum, p) => sum + p.price, 0) / allProperties.length;
+        const userProperties = await prisma.property.findMany({
+            where: { ownerId: req.user.id }
+        });
+        
+        const userAvgPrice = userProperties.reduce((sum, p) => sum + p.price, 0) / userProperties.length;
+        const competitivePosition = ((userAvgPrice / marketAvgPrice - 1) * 100).toFixed(1);
+        
+        res.json({
+            marketAvgPrice: Math.round(marketAvgPrice),
+            userAvgPrice: Math.round(userAvgPrice),
+            competitivePosition: `${competitivePosition}%`,
+            marketTrend: Math.random() > 0.5 ? 'Hausse' : 'Stable',
+            recommendations: [
+                'Optimiser les photos de vos annonces',
+                'Ajuster les prix selon la saisonnalité',
+                'Améliorer les descriptions des propriétés'
+            ]
+        });
+    } catch (error) {
+        console.error('Erreur analyse marché:', error);
+        res.status(500).json({ error: 'Erreur lors de l\'analyse de marché' });
+    }
+});
+
+// --- Gestion des paiements (Stripe simulation) ---
+app.post('/api/payment/create-intent', authenticateToken, async (req, res) => {
+    const { amount, currency = 'eur', propertyId } = req.body;
+    
+    try {
+        // Simulation d'un payment intent Stripe
+        const paymentIntent = {
+            id: `pi_${Math.random().toString(36).substr(2, 24)}`,
+            client_secret: `pi_${Math.random().toString(36).substr(2, 24)}_secret_${Math.random().toString(36).substr(2, 10)}`,
+            amount: amount * 100, // Stripe utilise les centimes
+            currency,
+            status: 'requires_payment_method',
+            propertyId
+        };
+        
+        res.json(paymentIntent);
+    } catch (error) {
+        console.error('Erreur création payment intent:', error);
+        res.status(500).json({ error: 'Erreur lors de la création du paiement' });
+    }
+});
+
+app.post('/api/payment/confirm', authenticateToken, async (req, res) => {
+    const { paymentIntentId, paymentMethodId } = req.body;
+    
+    try {
+        // Simulation de confirmation de paiement
+        const success = Math.random() > 0.1; // 90% de succès
+        
+        if (success) {
+            res.json({
+                status: 'succeeded',
+                paymentIntentId,
+                message: 'Paiement confirmé avec succès'
+            });
+        } else {
+            res.status(400).json({
+                status: 'failed',
+                error: 'Paiement refusé par la banque'
+            });
+        }
+    } catch (error) {
+        console.error('Erreur confirmation paiement:', error);
+        res.status(500).json({ error: 'Erreur lors de la confirmation du paiement' });
+    }
+});
+
+// --- Gestion des documents ---
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Type de fichier non autorisé'));
+        }
+    }
+});
+
+app.post('/api/documents/upload', authenticateToken, upload.single('document'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Aucun fichier fourni' });
+        }
+        
+        const { documentType, propertyId } = req.body;
+        const filePath = `/uploads/${req.file.filename}`;
+        
+        // Sauvegarder les infos du document en base
+        const document = await prisma.document.create({
+            data: {
+                filename: req.file.filename,
+                originalName: req.file.originalname,
+                filePath,
+                documentType,
+                propertyId: propertyId ? parseInt(propertyId) : null,
+                uploadedById: req.user.id
+            }
+        });
+        
+        res.json({
+            success: true,
+            document,
+            message: 'Document téléchargé avec succès'
+        });
+    } catch (error) {
+        console.error('Erreur upload document:', error);
+        res.status(500).json({ error: 'Erreur lors du téléchargement du document' });
+    }
+});
+
+app.get('/api/documents', authenticateToken, async (req, res) => {
+    try {
+        const documents = await prisma.document.findMany({
+            where: { uploadedById: req.user.id },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(documents);
+    } catch (error) {
+        console.error('Erreur récupération documents:', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des documents' });
+    }
+});
+
+// Servir les fichiers uploadés
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ========================================
+// ---     SERVICE DES PAGES HTML       ---
+// ========================================
+const pages = ['index', 'proprietaire', 'voyageur', 'intervenant', 'ia', 'nexastay-working'];
+pages.forEach(page => {
+    const route = `/${page === 'index' ? '' : page}`;
+    app.get(route, (req, res) => {
+        res.sendFile(path.join(__dirname, `${page}.html`));
+    });
+});
+
+// ========================================
+// ---       DÉMARRAGE DU SERVEUR       ---
+// ========================================
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`🚀 Serveur NexaStay démarré sur http://localhost:${PORT}`);
+});

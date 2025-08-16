@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaStay IA - Dashboard Complet</title>
+    <style>
+        :root {
+            --primary-dark: #1a202c;
+            --secondary-dark: #2d3748;
+            --accent-blue: #3182ce;
+            --accent-gold: #d69e2e;
+            --accent-purple: #5a32d2;
+            --white: #ffffff;
+            --light-gray: #f7fafc;
+            --success-green: #38a169;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --dark-bg: #111827;
+            --dark-card: #1f2937;
+            --dark-border: #374151;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--dark-bg); 
+            color: var(--light-gray);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background: var(--dark-card);
+            border-right: 1px solid var(--dark-border);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--white);
+            text-decoration: none;
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            color: #d1d5db;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .sidebar-nav a:hover {
+            background-color: #374151;
+        }
+        .sidebar-nav a.active {
+            background-color: var(--accent-blue);
+            color: var(--white);
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid var(--dark-border);
+            padding-top: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .header { 
+            background: var(--dark-card);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--dark-border);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--secondary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+
+        .container { padding: 2rem; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: var(--dark-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--dark-border); margin-bottom: 2rem; }
+        .metric { font-size: 2.5rem; font-weight: 700; color: var(--accent-blue); }
+        
+        .insight-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-gold);
+        }
+        .insight-item h4 { color: var(--accent-gold); margin-bottom: 0.5rem; }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--accent-blue);
+            color: var(--white);
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .recommendation-list li {
+            margin-bottom: 0.5rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+        .recommendation-list li::before {
+            content: '✓';
+            color: var(--success-green);
+            position: absolute;
+            left: -5px;
+        }
+        .table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; color: var(--light-gray); }
+        .table th, .table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--dark-border); }
+        .table th { font-size: 0.875rem; color: #9ca3af; }
+        .table tr:last-child td { border-bottom: none; }
+        .table .highlight { background-color: rgba(49, 130, 206, 0.2); font-weight: 600; }
+        .suggested-price { color: var(--success-green); font-weight: bold; }
+        .prediction-chart { height: 150px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-style: italic; }
+        .map-placeholder { height: 200px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-style: italic; margin-bottom: 1.5rem; }
+        .check-mark { color: var(--success-green); }
+        .cross-mark { color: #e53e3e; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="/" class="logo">NexaAI</a>
+        <nav class="sidebar-nav">
+            <a href="proprietaire.html">📊 Dashboard Principal</a>
+            <a href="#" onclick="showSection('analytics')" class="active">📈 Analytics IA</a>
+            <a href="#" onclick="showSection('optimisations')">⚙️ Optimisations</a>
+            <a href="#" onclick="showSection('scenarios')">🤖 Scénarios Prédictifs</a>
+            <a href="#" onclick="showSection('analyse')">🔍 Analyse Concurrentielle</a>
+        </nav>
+        <div class="sidebar-footer">
+             <a href="/" style="text-decoration: none; color: var(--accent-blue); font-weight: 500;">← Retour au site</a>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="header">
+            <h1 id="pageTitle">Analytics & Intelligence</h1>
+            <div class="user-info">
+                <strong id="userName"></strong>
+                <div class="user-avatar" id="userAvatar"></div>
+            </div>
+        </header>
+        
+        <main class="container">
+            <div id="analytics" class="content-section active">
+                <div class="dashboard-grid">
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Revenus (30j)</h3>
+                        <p class="metric">12,450€</p>
+                        <p style="color: var(--success-green);">Optimisation de +8% en cours</p>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Réservations (30j)</h3>
+                        <p class="metric">18</p>
+                        <p>Dont 4 générées par l'IA</p>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Taux d'Occupation</h3>
+                        <p class="metric">89%</p>
+                        <p>Potentiel de 95% détecté</p>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Communication IA</h3>
+                        <p class="metric">97%</p>
+                        <p>Taux de réponse automatisé</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🧠 Insights & Actions IA</h2>
+                    <div class="insight-item">
+                        <h4>Opportunité de Prix Détectée</h4>
+                        <p>L'IA recommande d'augmenter les tarifs de 12% pour les weekends d'août en raison d'une demande exceptionnelle. Impact estimé: +€2,400.</p>
+                        <button class="btn" style="margin-top: 1rem;">Appliquer</button>
+                    </div>
+                     <div class="insight-item">
+                        <h4>Optimisation de la Concurrence</h4>
+                        <p>Vos concurrents ont baissé leurs prix de 8%. L'IA maintient vos tarifs car votre taux de conversion reste supérieur de 23%.</p>
+                         <button class="btn" style="margin-top: 1rem;">Voir l'analyse</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="optimisations" class="content-section">
+                <div class="card">
+                    <h2>🚀 Optimisation Dynamique des Tarifs</h2>
+                    <p style="margin-bottom: 1.5rem;">NexaAI analyse en continu le marché local pour vous fournir les meilleures recommandations tarifaires. Voici l'analyse pour votre <strong>Villa Méditerranéenne</strong> pour la semaine à venir.</p>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Propriété</th>
+                                <th>Note</th>
+                                <th>Taux d'occupation (7j)</th>
+                                <th>Prix / Nuit Actuel</th>
+                                <th>Prix Suggéré par l'IA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight">
+                                <td>Votre Villa Méditerranéenne</td>
+                                <td>4.9 ⭐</td>
+                                <td>100%</td>
+                                <td>350€</td>
+                                <td class="suggested-price">395€ (+13%)</td>
+                            </tr>
+                            <tr>
+                                <td>Concurrent A (Villa de Luxe)</td>
+                                <td>4.8 ⭐</td>
+                                <td>95%</td>
+                                <td>410€</td>
+                                <td>-</td>
+                            </tr>
+                             <tr>
+                                <td>Concurrent B (Villa avec Piscine)</td>
+                                <td>4.7 ⭐</td>
+                                <td>100%</td>
+                                <td>380€</td>
+                                <td>-</td>
+                            </tr>
+                             <tr>
+                                <td>Concurrent C (Maison vue Mer)</td>
+                                <td>4.9 ⭐</td>
+                                <td>80%</td>
+                                <td>360€</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="text-align: right; margin-top: 1.5rem;">
+                        <button class="btn">Appliquer les tarifs suggérés</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scenarios" class="content-section">
+                <div class="card">
+                    <h2>🔮 Scénarios Prédictifs</h2>
+                    <p style="margin-bottom: 1.5rem;">Anticipez les tendances futures pour prendre les meilleures décisions aujourd'hui. L'IA analyse les signaux du marché pour prévoir la demande et les besoins opérationnels.</p>
+                    
+                    <div class="insight-item" style="border-left-color: var(--accent-purple);">
+                        <h4 style="color: var(--accent-purple);">Prédiction de Demande (Prochains 90 jours)</h4>
+                        <p>Un pic de demande est attendu en Octobre (+40%) en raison du "Festival des Lumières". Recommandation : bloquer les dates pour une tarification manuelle ou laisser l'IA ajuster automatiquement.</p>
+                        <div class="prediction-chart" style="margin-top: 1rem;">
+                            [Simulation de graphique de demande future]
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn">Ajustement IA automatique</button>
+                        </div>
+                    </div>
+
+                    <div class="insight-item" style="border-left-color: var(--accent-gold);">
+                        <h4 style="color: var(--accent-gold);">Optimisation des Dépenses</h4>
+                        <p>Basé sur l'utilisation passée, une maintenance préventive de la climatisation du Loft est recommandée avant le pic de chaleur de la fin du mois, pour un coût estimé de 150€. Cela pourrait éviter une réparation d'urgence coûtant jusqu'à 500€.</p>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn">Planifier la maintenance</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analyse" class="content-section">
+                <div class="card">
+                    <h2>🔍 Analyse Concurrentielle Détaillée</h2>
+                    <p style="margin-bottom: 1.5rem;">Visualisez votre positionnement par rapport aux concurrents directs pour votre <strong>Villa Méditerranéenne</strong>.</p>
+                    <div class="map-placeholder">
+                        [Simulation de carte avec votre propriété et celles des concurrents]
+                    </div>
+                    <table class="table">
+                         <thead>
+                            <tr>
+                                <th>Équipement</th>
+                                <th>Votre Villa</th>
+                                <th>Concurrent A</th>
+                                <th>Concurrent B</th>
+                                <th>Concurrent C</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Prix / Nuit</td>
+                                <td class="highlight">350€</td>
+                                <td>410€</td>
+                                <td>380€</td>
+                                <td>360€</td>
+                            </tr>
+                            <tr>
+                                <td>Piscine</td>
+                                <td class="check-mark">✓</td>
+                                <td class="check-mark">✓</td>
+                                <td class="check-mark">✓</td>
+                                <td class="cross-mark">✗</td>
+                            </tr>
+                            <tr>
+                                <td>Parking Privé</td>
+                                <td class="check-mark">✓</td>
+                                <td class="cross-mark">✗</td>
+                                <td class="check-mark">✓</td>
+                                <td class="check-mark">✓</td>
+                            </tr>
+                            <tr>
+                                <td>Vue Mer</td>
+                                <td class="check-mark">✓</td>
+                                <td class="check-mark">✓</td>
+                                <td class="cross-mark">✗</td>
+                                <td class="check-mark">✓</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h2>💡 Insights de l'Analyse Concurrentielle</h2>
+                    <div class="insight-item" style="border-left-color: var(--success-green);">
+                        <h4 style="color: var(--success-green);">Points Forts</h4>
+                        <p>Votre tarif est très compétitif, surtout compte tenu de la présence d'un parking privé, un atout majeur par rapport au Concurrent A.</p>
+                    </div>
+                    <div class="insight-item" style="border-left-color: var(--accent-gold);">
+                        <h4 style="color: var(--accent-gold);">Opportunités</h4>
+                        <p>Le Concurrent C n'a pas de piscine. Mettez en avant cet équipement dans vos photos et descriptions pour attirer les voyageurs qui filtrent sur ce critère.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.sidebar-nav a[onclick="showSection('${sectionId}')"]`).classList.add('active');
+            
+            const titles = {
+                analytics: "Analytics & Intelligence",
+                optimisations: "Optimisation des Tarifs",
+                scenarios: "Scénarios Prédictifs",
+                analyse: "Analyse Concurrentielle"
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionId] || "Analytics & Intelligence";
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = JSON.parse(localStorage.getItem('nexastay_user'));
+
+            if (!user || (user.role !== 'HOST' && user.role !== 'host')) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            const userName = document.getElementById('userName');
+            const userAvatar = document.getElementById('userAvatar');
+            if (user.firstName && user.lastName) {
+                userName.textContent = `${user.firstName} ${user.lastName}`;
+                userAvatar.textContent = `${user.firstName[0]}${user.lastName[0]}`;
+            }
+
+            // Affiche la première section par défaut
+            showSection('analytics');
+        });
+    </script>
+</body>
+</html>
+```

@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(GUEST)
+  createdAt DateTime @default(now())
+
+  // Champs pour la conformité légale (si c'est un propriétaire)
+  fiscalNumber      String?
+  isAccountVerified Boolean @default(false)
+
+  // Stripe Customer ID pour les paiements
+  stripeCustomerId String? @unique
+
+  properties Property[]
+  bookings   Booking[]
+}
+
+model Property {
+  id        String   @id @default(uuid())
+  title     String
+  location  String
+  price     Float
+  image     String?
+  createdAt DateTime @default(now())
+
+  // Champs pour la conformité légale
+  touristRegistrationNumber String?
+  insuranceProofUrl         String?
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  bookings Booking[]
+}
+
+model Booking {
+  id           String    @id @default(uuid())
+  checkInDate  DateTime
+  checkOutDate DateTime
+  totalAmount  Float
+  status       String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  createdAt    DateTime  @default(now())
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  guestId String
+  guest   User   @relation(fields: [guestId], references: [id])
+
+  // Informations de paiement et caution
+  stripePaymentIntentId String? @unique
+  securityDepositHeld   Boolean @default(false)
+}
+
+enum Role {
+  GUEST
+  HOST
+  INTERVENANT
+  ADMIN
+}
